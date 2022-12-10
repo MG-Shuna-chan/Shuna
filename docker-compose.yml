@@ -5,5 +5,7 @@ services:
     build: .
     command: bash start.sh
     restart: on-failure
+    environment:
+      - CONFIG_FILE_URL=
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
