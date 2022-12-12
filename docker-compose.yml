@@ -2,10 +2,11 @@ version: "3.3"
 
 services:
   app:
-    build: .
+    container_name: jmdkh-mltb
+    build:
+      context: .
+      dockerfile: Dockerfile
     command: bash start.sh
     restart: on-failure
-    environment:
-      - CONFIG_FILE_URL=
     ports:
-      - "127.0.0.1:80:80"
+      - "80:80"
