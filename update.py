@@ -1,9 +1,10 @@
 from logging import FileHandler, StreamHandler, INFO, basicConfig, error as log_error, info as log_info
-from os import path as ospath, environ, remove
-from subprocess import run as srun
+from os import path as ospath, environ, remove as osremove
+from subprocess import run as srun, call as scall
+from pkg_resources import working_set
+from requests import get as rget
 from dotenv import load_dotenv
 from pymongo import MongoClient
-from requests import get as rget
 
 if ospath.exists('log.txt'):
     with open('log.txt', 'r+') as f:
@@ -32,30 +33,12 @@ except:
 
 load_dotenv('config.env', override=True)
 
+load_dotenv('config.env', override=True)
+
 try:
     if bool(environ.get('_____REMOVE_THIS_LINE_____')):
         log_error('The README.md file there to be read! Exiting now!')
         exit()
-except:
-    pass
-
-try:
-    ACCOUNTS_ZIP_URL = getConfig('ACCOUNTS_ZIP_URL')
-    if len(ACCOUNTS_ZIP_URL) == 0:
-        raise KeyError
-    try:
-        res = rget(ACCOUNTS_ZIP_URL)
-        if res.status_code == 200:
-            with open('accounts.zip', 'wb+') as f:
-                f.write(res.content)
-        else:
-            log_error(f"Failed to download accounts.zip, link got HTTP response: {res.status_code}")
-    except Exception as e:
-        log_error(f"ACCOUNTS_ZIP_URL: {e}")
-        raise KeyError
-    srun(["unzip", "-q", "-o", "accounts.zip"])
-    srun(["chmod", "-R", "777", "accounts"])
-    remove("accounts.zip")
 except:
     pass
 
@@ -70,13 +53,19 @@ DATABASE_URL = environ.get('DATABASE_URL', '')
 if len(DATABASE_URL) == 0:
     DATABASE_URL = None
 
-if DATABASE_URL:
+if DATABASE_URL is not None:
     conn = MongoClient(DATABASE_URL)
     db = conn.mltb
     if config_dict := db.settings.config.find_one({'_id': bot_id}):  #retrun config dict (all env vars)
         environ['UPSTREAM_REPO'] = config_dict['UPSTREAM_REPO']
         environ['UPSTREAM_BRANCH'] = config_dict['UPSTREAM_BRANCH']
+        environ['UPDATE_PACKAGES'] = config_dict['UPDATE_PACKAGES']
     conn.close()
+
+UPDATE_PACKAGES = environ.get('UPDATE_PACKAGES', 'False')
+if UPDATE_PACKAGES.lower() == 'true':
+    packages = [dist.project_name for dist in working_set]
+    scall("pip install " + ' '.join(packages), shell=True)
 
 UPSTREAM_REPO = environ.get('UPSTREAM_REPO', '')
 if len(UPSTREAM_REPO) == 0:
@@ -86,12 +75,12 @@ UPSTREAM_BRANCH = environ.get('UPSTREAM_BRANCH', '')
 if len(UPSTREAM_BRANCH) == 0:
     UPSTREAM_BRANCH = 'master'
 
-if UPSTREAM_REPO:
+if UPSTREAM_REPO is not None:
     if ospath.exists('.git'):
         srun(["rm", "-rf", ".git"])
 
     update = srun([f"git init -q \
-                     && git config --global user.email luteg96@gmail.com \
+                     && git config --global user.email luteg96@outlook.com \
                      && git config --global user.name luteg96 \
                      && git add . \
                      && git commit -sm update -q \
@@ -99,7 +88,8 @@ if UPSTREAM_REPO:
                      && git fetch origin -q \
                      && git reset --hard origin/{UPSTREAM_BRANCH} -q"], shell=True)
 
+    UPSTREAM_REPO_URL = (UPSTREAM_REPO[:8] if UPSTREAM_REPO[:8] and UPSTREAM_REPO[:8].endswith('/') else UPSTREAM_REPO[:7]) + UPSTREAM_REPO.split('@')[1] if '@github.com' in UPSTREAM_REPO else UPSTREAM_REPO    
     if update.returncode == 0:
-        log_info('Successfully updated with latest commit from UPSTREAM_REPO')
+        log_info(f'Successfully updated with latest commit from {UPSTREAM_REPO_URL}')
     else:
-        log_error('Something went wrong while updating, check UPSTREAM_REPO if valid or not!')
+        log_error(f'Something went wrong while updating, check {UPSTREAM_REPO_URL} if valid or not!')
