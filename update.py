@@ -33,8 +33,6 @@ except:
 
 load_dotenv('config.env', override=True)
 
-load_dotenv('config.env', override=True)
-
 try:
     if bool(environ.get('_____REMOVE_THIS_LINE_____')):
         log_error('The README.md file there to be read! Exiting now!')
