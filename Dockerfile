@@ -1,16 +1,9 @@
-FROM anasty17/mltb:latest
+FROM lutegglh/bot:waifu
 
 WORKDIR /usr/src/app
 RUN chmod 777 /usr/src/app
 
-COPY mirrorgan.txt .
-RUN pip3 install --no-cache-dir -r mirrorgan.txt
-RUN playwright install chromium
-RUN playwright install-deps
-RUN apt-get update && apt-get upgrade -y
-RUN apt -qq update --fix-missing && \
-    apt -qq install -y mediainfo
-
 COPY . .
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 CMD ["bash", "start.sh"]
